@@ -31,7 +31,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#if defined(__CYGWIN__)
+#if defined(__CYGWIN__) || defined(__MINGW64_VERSION_MAJOR)
 #include <ntddcdrm.h>
 #elif defined(__MINGW32__)
 #include <ddk/ntddcdrm.h>
