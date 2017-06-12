@@ -28,7 +28,7 @@
 #	ifdef libdiscid_EXPORTS
 #		define LIBDISCID_API __declspec(dllexport)
 #	else
-#		define LIBDISCID_API __declspec(dllimport)
+#		define LIBDISCID_API 
 #	endif
 #	define LIBDISCID_INTERNAL
 #elif (defined(__GNUC__) && (__GNUC__ >= 4)) || defined(__clang__)

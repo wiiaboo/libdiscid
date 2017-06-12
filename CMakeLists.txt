@@ -34,6 +34,7 @@ SET(EXEC_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX} CACHE PATH "Installation prefix 
 SET(BIN_INSTALL_DIR ${EXEC_INSTALL_PREFIX}/bin CACHE PATH "Installation prefix for user executables" FORCE)
 SET(LIB_INSTALL_DIR ${EXEC_INSTALL_PREFIX}/lib${LIB_SUFFIX} CACHE PATH  "Installation prefix for object code libraries" FORCE)
 SET(INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/include CACHE PATH "Installation prefix for C header files" FORCE)
+option(BUILD_SHARED_LIBS "Build shared library" ON)
 
 # compatibility with automake
 SET(PACKAGE ${PROJECT_NAME})
@@ -98,36 +99,50 @@ IF(NOT MUSICBRAINZ5_FOUND)
     SET(MUSICBRAINZ5_INCLUDE_DIRS "")
 ENDIF()
 
-ADD_LIBRARY(libdiscid SHARED ${libdiscid_OSDEP_SRCS} ${libdiscid_RCS} src/base64.c src/disc.c src/sha1.c)
-TARGET_LINK_LIBRARIES(libdiscid ${libdiscid_OSDEP_LIBS})
-SET_TARGET_PROPERTIES(libdiscid PROPERTIES
+ADD_LIBRARY(libdiscid-static STATIC ${libdiscid_OSDEP_SRCS} ${libdiscid_RCS} src/base64.c src/disc.c src/sha1.c)
+TARGET_LINK_LIBRARIES(libdiscid-static ${libdiscid_OSDEP_LIBS})
+SET_TARGET_PROPERTIES(libdiscid-static PROPERTIES
     OUTPUT_NAME discid
     VERSION ${libdiscid_VERSION}
-    SOVERSION ${libdiscid_SOVERSION}
 )
+install(TARGETS libdiscid-static
+    ARCHIVE DESTINATION lib)
+if(BUILD_SHARED_LIBS)
+    ADD_LIBRARY(libdiscid SHARED ${libdiscid_OSDEP_SRCS} ${libdiscid_RCS} src/base64.c src/disc.c src/sha1.c)
+    TARGET_LINK_LIBRARIES(libdiscid ${libdiscid_OSDEP_LIBS})
+    SET_TARGET_PROPERTIES(libdiscid PROPERTIES
+        OUTPUT_NAME discid
+        VERSION ${libdiscid_VERSION}
+        SOVERSION ${libdiscid_SOVERSION}
+    )
+    INSTALL(TARGETS libdiscid
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib)
+endif()
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/include
 	${CMAKE_CURRENT_BINARY_DIR}/include ${MUSICBRAINZ5_INCLUDE_DIRS})
 
-ADD_EXECUTABLE(discid examples/discid.c)
-TARGET_LINK_LIBRARIES(discid libdiscid)
-ADD_EXECUTABLE(discisrc examples/discisrc.c)
-TARGET_LINK_LIBRARIES(discisrc libdiscid)
-IF(MUSICBRAINZ5_FOUND)
-    ADD_EXECUTABLE(disc_metadata examples/disc_metadata.c)
-    TARGET_LINK_LIBRARIES(disc_metadata libdiscid
-                          ${MUSICBRAINZ5_LIBRARIES} stdc++)
-ENDIF()
+if(BUILD_SHARED_LIBS)
+    ADD_EXECUTABLE(discid examples/discid.c)
+    TARGET_LINK_LIBRARIES(discid libdiscid)
+    ADD_EXECUTABLE(discisrc examples/discisrc.c)
+    TARGET_LINK_LIBRARIES(discisrc libdiscid)
+    IF(MUSICBRAINZ5_FOUND)
+        ADD_EXECUTABLE(disc_metadata examples/disc_metadata.c)
+        TARGET_LINK_LIBRARIES(disc_metadata libdiscid
+                              ${MUSICBRAINZ5_LIBRARIES} stdc++)
+    ENDIF()
 
-ADD_EXECUTABLE(test_core EXCLUDE_FROM_ALL test/test.c test/test_core.c)
-TARGET_LINK_LIBRARIES(test_core libdiscid)
-ADD_EXECUTABLE(test_put EXCLUDE_FROM_ALL test/test.c test/test_put.c)
-TARGET_LINK_LIBRARIES(test_put libdiscid)
-ADD_EXECUTABLE(test_read EXCLUDE_FROM_ALL test/test.c test/test_read.c)
-TARGET_LINK_LIBRARIES(test_read libdiscid)
-ADD_EXECUTABLE(test_read_full EXCLUDE_FROM_ALL test/test.c test/test_read_full.c)
-TARGET_LINK_LIBRARIES(test_read_full libdiscid)
+    ADD_EXECUTABLE(test_core EXCLUDE_FROM_ALL test/test.c test/test_core.c)
+    TARGET_LINK_LIBRARIES(test_core libdiscid)
+    ADD_EXECUTABLE(test_put EXCLUDE_FROM_ALL test/test.c test/test_put.c)
+    TARGET_LINK_LIBRARIES(test_put libdiscid)
+    ADD_EXECUTABLE(test_read EXCLUDE_FROM_ALL test/test.c test/test_read.c)
+    TARGET_LINK_LIBRARIES(test_read libdiscid)
+    ADD_EXECUTABLE(test_read_full EXCLUDE_FROM_ALL test/test.c test/test_read_full.c)
+    TARGET_LINK_LIBRARIES(test_read_full libdiscid)
+endif()
 
-INSTALL(TARGETS libdiscid DESTINATION ${LIB_INSTALL_DIR})
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/libdiscid.pc DESTINATION ${LIB_INSTALL_DIR}/pkgconfig)
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/discid/discid.h DESTINATION ${INCLUDE_INSTALL_DIR}/discid)
 
